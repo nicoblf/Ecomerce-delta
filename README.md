@@ -1,1 +1,1 @@
-Site de vendas typescrip ainda em andamento
+Site de vendas typescript ainda em andamento
