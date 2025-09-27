@@ -1,0 +1,7 @@
+no terminal no VS code 
+cd deltachronos-frontend
+npm run dev
+
+ligar o servidor
+node server.js
+npm run dev

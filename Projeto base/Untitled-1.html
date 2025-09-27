@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SmartShop - Catálogo + Carrinho</title>
+<style>
+  /* === Seu CSS está ótimo! Adicionei apenas o estilo para a notificação "toast" === */
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f9f7; color: #004d3b; margin: 0; padding: 0; line-height: 1.5; }
+  h2 { margin-bottom: 0.5em; color: #007f5f; }
+  header { background-color: #007f5f; color: white; padding: 1em 1.5em; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-weight: 700; font-size: 1.4rem; letter-spacing: 1px; }
+  #btnCarrinhoAbrir { background: #004d3b; border: none; color: white; padding: 0.5em 1em; font-weight: 700; border-radius: 6px; cursor: pointer; transition: background-color 0.3s ease; position: relative; }
+  #btnCarrinhoAbrir:hover, #btnCarrinhoAbrir:focus { background-color: #009966; outline: none; }
+  #cartBadge { position: absolute; top: -6px; right: -6px; background: #e60023; color: white; font-size: 0.8rem; font-weight: 700; padding: 0 6px; border-radius: 50%; pointer-events: none; }
+  #produtos { display: flex; max-width: 1200px; margin: 1.5em auto 3em; gap: 1.5em; padding: 0 1em; }
+  .filtros { flex: 0 0 280px; background: #e6f0e8; border-radius: 10px; padding: 1.5em 1.2em; box-shadow: 0 0 10px rgba(0,127,95,0.1); font-size: 0.95rem; align-self: flex-start; }
+  .filtros fieldset { border: none; margin-bottom: 1.4em; padding: 0; }
+  .filtros legend { font-weight: 700; margin-bottom: 0.6em; color: #005c3d; font-size: 1.1rem; }
+  .filtros label { display: block; margin-bottom: 0.4em; cursor: pointer; }
+  .filtros input[type="checkbox"], .filtros input[type="radio"] { margin-right: 0.5em; accent-color: #007f5f; cursor: pointer; }
+  #searchInput { width: 100%; padding: 0.5em 0.7em; border: 1.5px solid #007f5f; border-radius: 6px; font-size: 1rem; color: #004d3b; }
+  #searchInput::placeholder { color: #7fbfa0; }
+  .content-area { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .products { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25em; }
+  .product { background: #fff; border-radius: 10px; box-shadow: 0 3px 7px rgba(0,127,95,0.15); padding: 1em; display: flex; flex-direction: column; align-items: center; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+  .product:hover, .product:focus-within { transform: translateY(-6px); box-shadow: 0 8px 18px rgba(0,127,95,0.3); outline: none; }
+  .product img { width: 100%; max-height: 180px; object-fit: contain; border-radius: 6px; margin-bottom: 0.8em; user-select: none; }
+  .product h4 { margin-bottom: 0.3em; font-size: 1.1rem; color: #005c3d; text-align: center; flex-grow: 1;}
+  .product p { font-weight: 700; color: #007f5f; margin-bottom: 1em; font-size: 1.05rem; }
+  .product button { background: #007f5f; color: #fff; border: none; border-radius: 6px; padding: 0.5em 1.2em; cursor: pointer; font-weight: 700; transition: background-color 0.3s ease, color 0.3s ease; width: 100%; }
+  .product button:hover:not(:disabled), .product button:focus:not(:disabled) { background-color: #005c3d; outline: none; }
+  .product button:disabled { background-color: #009966; cursor: not-allowed; }
+  .pagination { margin: 1.5em 0; text-align: center; }
+  .pagination button { background: #007f5f; border: none; color: white; padding: 0.5em 0.9em; margin: 0 0.25em; border-radius: 6px; cursor: pointer; font-weight: 700; transition: background 0.3s ease; min-width: 36px; }
+  .pagination button:disabled { background: #004d3b; cursor: default; }
+  .pagination button:hover:not(:disabled), .pagination button:focus:not(:disabled) { background: #009966; outline: none; }
+  #cartPanel { position: fixed; top: 0; right: 0; width: 320px; height: 100vh; background: #e6f0e8; box-shadow: -4px 0 15px rgba(0,0,0,0.1); padding: 1em 1.2em; transform: translateX(100%); transition: transform 0.35s ease; display: flex; flex-direction: column; z-index: 9999; }
+  #cartPanel.aberto { transform: translateX(0); }
+  #cartPanel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; background-color: transparent; color: inherit; padding: 0; }
+  #cartPanel header h2 { margin: 0; color: #007f5f; font-weight: 700; font-size: 1.4rem; }
+  #btnFecharCarrinho { background: transparent; border: none; font-size: 1.6rem; cursor: pointer; color: #005c3d; }
+  #btnFecharCarrinho:hover, #btnFecharCarrinho:focus { color: #009966; outline: none; }
+  #cartItems { flex: 1 1 auto; overflow-y: auto; margin-bottom: 1em; }
+  .cart-item { display: flex; align-items: center; margin-bottom: 1em; border-bottom: 1px solid #b3d3c5; padding-bottom: 0.8em; }
+  .cart-item img { width: 60px; height: 60px; object-fit: contain; border-radius: 6px; margin-right: 0.8em; }
+  .cart-item-info { flex: 1 1 auto; }
+  .cart-item-info h4 { margin: 0 0 0.3em 0; font-size: 1rem; color: #004d3b; }
+  .cart-item-info p { margin: 0 0 0.5em 0; font-weight: 700; color: #007f5f; }
+  .cart-item-actions { display: flex; flex-direction: column; gap: 0.4em; align-items: flex-end; }
+  .cart-item-actions input[type="number"] { width: 50px; padding: 0.2em 0.4em; border: 1px solid #007f5f; border-radius: 6px; text-align: center; }
+  .cart-item-actions button { background: #e60023; border: none; color: white; padding: 0.2em 0.6em; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: background-color 0.3s ease; }
+  .cart-item-actions button:hover, .cart-item-actions button:focus { background-color: #990017; outline: none; }
+  #cartTotal { font-weight: 700; font-size: 1.3rem; text-align: right; color: #004d3b; }
+  #btnFinalizarCompra { margin-top: 1em; background: #007f5f; color: white; border: none; width: 100%; padding: 0.8em 0; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: background-color 0.3s ease; }
+  #btnFinalizarCompra:hover:not(:disabled), #btnFinalizarCompra:focus:not(:disabled) { background-color: #005c3d; outline: none; }
+  #btnFinalizarCompra:disabled { background-color: #7fbfa0; cursor: not-allowed; }
+  .empty-cart-message { text-align: center; padding: 2em 0; color: #005c3d; }
+
+  /* MELHORIA: Estilo para a notificação "toast" */
+  #toast-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translate(-50%, 150%);
+    background-color: #004d3b;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: transform 0.4s ease-in-out;
+    z-index: 10000;
+    opacity: 0;
+  }
+  #toast-notification.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  
+  @media (max-width: 900px) { #produtos { flex-direction: column; max-width: 100%; padding: 1em; } .filtros { width: 100%; display: flex; flex-wrap: wrap; gap: 1em; padding: 1em; justify-content: space-between; } .filtros fieldset { flex: 1 1 45%; } #searchInput { flex: 1 1 100%; margin-top: 0.5em; } }
+  @media (max-width: 480px) { #cartPanel { width: 100vw; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SmartShop</h1>
+  <button id="btnCarrinhoAbrir" aria-label="Abrir carrinho de compras">
+    Carrinho <span id="cartBadge" aria-live="polite" aria-atomic="true" style="display:none;">0</span>
+  </button>
+</header>
+
+<main id="produtos" aria-label="Produtos">
+  <aside class="filtros" role="region" aria-label="Filtros de produtos">
+    <h2>Filtros</h2>
+    <fieldset>
+      <legend>Categorias</legend>
+      <label><input type="checkbox" name="categoria" value="smartwatch" checked> Smartwatches</label>
+      <label><input type="checkbox" name="categoria" value="fone" checked> Fones Bluetooth</label>
+    </fieldset>
+    <fieldset>
+      <legend>Faixa de preço</legend>
+      <label><input type="radio" name="preco" value="all" checked> Todos</label>
+      <label><input type="radio" name="preco" value="0-200"> Até R$200</label>
+      <label><input type="radio" name="preco" value="201-350"> R$201 - R$350</label>
+    </fieldset>
+    <label for="searchInput" style="font-weight:700; color:#007f5f; display:block; margin-bottom:0.5em;">Buscar Produtos:</label>
+    <input id="searchInput" type="search" placeholder="Digite o nome do produto" aria-label="Buscar produtos" />
+  </aside>
+
+  <div class="content-area">
+    <div class="products" tabindex="0" aria-live="polite" aria-atomic="true" aria-relevant="additions removals">
+      </div>
+    <nav class="pagination" aria-label="Paginação de produtos">
+      </nav>
+  </div>
+</main>
+
+<aside id="cartPanel" aria-label="Carrinho de compras" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1">
+  <header>
+    <h2>Carrinho</h2>
+    <button id="btnFecharCarrinho" aria-label="Fechar carrinho">&times;</button>
+  </header>
+  <div id="cartItems" tabindex="0">
+    </div>
+  <div id="cartTotal" aria-live="polite" aria-atomic="true">Total: R$ 0,00</div>
+  <button id="btnFinalizarCompra" disabled>Finalizar Compra</button>
+</aside>
+
+<div id="toast-notification" aria-live="assertive" aria-atomic="true"></div>
+
+<script>
+(() => {
+  const produtosDados = [
+    {id: 1, nome: "Smartwatch Alpha", categoria: "smartwatch", preco: 299, img:"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80"},
+    {id: 2, nome: "Smartwatch Beta", categoria: "smartwatch", preco: 349, img:"https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=400&q=80"},
+    {id: 3, nome: "Smartwatch Fit", categoria: "smartwatch", preco: 199, img:"https://images.unsplash.com/photo-1509395062183-67c5ad6faff9?auto=format&fit=crop&w=400&q=80"},
+    {id: 4, nome: "Fone X", categoria: "fone", preco: 149, img:"https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80"},
+    {id: 5, nome: "Fone Y", categoria: "fone", preco: 199, img:"https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?auto=format&fit=crop&w=400&q=80"},
+    {id: 6, nome: "Fone Z", categoria: "fone", preco: 179, img:"https://images.unsplash.com/photo-1598514982829-3e83a0b75b8e?auto=format&fit=crop&w=400&q=80"},
+    {id: 7, nome: "Smartwatch Pro", categoria: "smartwatch", preco: 329, img:"https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=400&q=80"},
+    {id: 8, nome: "Fone Bluetooth Max", categoria: "fone", preco: 249, img:"https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=400&q=80"},
+    {id: 9, nome: "Smartwatch Xtreme", categoria: "smartwatch", preco: 299, img:"https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80"},
+    {id: 10, nome: "Fone Wireless Ultra", categoria: "fone", preco: 219, img:"https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=400&q=80"},
+    {id: 11, nome: "Smartwatch Classic", categoria: "smartwatch", preco: 199, img:"https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=400&q=80"},
+    {id: 12, nome: "Fone Bluetooth Lite", categoria: "fone", preco: 129, img:"https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=400&q=80"},
+  ];
+
+  // MELHORIA: Adicionado ID aos produtos para uma referência mais segura que o nome.
+  // MELHORIA: Criado um formatador de moeda para ser reutilizado.
+  const formatadorMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  
+  const filtroNome = document.getElementById('searchInput');
+  const filtroCategorias = [...document.querySelectorAll('input[name="categoria"]')];
+  const filtroPreco = [...document.querySelectorAll('input[name="preco"]')];
+  const containerProdutos = document.querySelector('.products');
+  const containerPaginacao = document.querySelector('.pagination');
+  const toast = document.getElementById('toast-notification');
+
+  const PRODUTOS_POR_PAG = 6;
+  let paginaAtual = 1;
+  let produtosFiltrados = [];
+
+  // MELHORIA: O carrinho agora usa o ID do produto como chave para evitar problemas com nomes iguais.
+  let carrinho = JSON.parse(localStorage.getItem('carrinhoSmartShop')) || {};
+
+  const btnAbrirCarrinho = document.getElementById('btnCarrinhoAbrir');
+  const btnFecharCarrinho = document.getElementById('btnFecharCarrinho');
+  const painelCarrinho = document.getElementById('cartPanel');
+  const containerCarrinho = document.getElementById('cartItems');
+  const cartBadge = document.getElementById('cartBadge');
+  const cartTotal = document.getElementById('cartTotal');
+  const btnFinalizar = document.getElementById('btnFinalizarCompra');
+  
+  // MELHORIA: Função para notificações "toast"
+  let toastTimer;
+  function mostrarNotificacao(mensagem) {
+    clearTimeout(toastTimer);
+    toast.textContent = mensagem;
+    toast.classList.add('show');
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2500);
+  }
+
+  // MELHORIA: Função centralizada para atualizar toda a UI do carrinho
+  function atualizarEstadoCarrinho() {
+    localStorage.setItem('carrinhoSmartShop', JSON.stringify(carrinho));
+    
+    const totalItens = Object.values(carrinho).reduce((acc, item) => acc + item.quantidade, 0);
+    if (totalItens > 0) {
+      cartBadge.style.display = 'inline-block';
+      cartBadge.textContent = totalItens;
+      btnFinalizar.disabled = false;
+    } else {
+      cartBadge.style.display = 'none';
+      btnFinalizar.disabled = true;
+    }
+    
+    renderizarItensCarrinho();
+  }
+  
+  function filtrarEExibirProdutos() {
+    const nomeBusca = filtroNome.value.trim().toLowerCase();
+    const categoriasSelecionadas = filtroCategorias.filter(i => i.checked).map(i => i.value);
+    const precoSelecionado = filtroPreco.find(i => i.checked)?.value || 'all';
+
+    produtosFiltrados = produtosDados.filter(prod => {
+      const matchNome = prod.nome.toLowerCase().includes(nomeBusca);
+      const matchCategoria = categoriasSelecionadas.includes(prod.categoria);
+      
+      let matchPreco = true;
+      if (precoSelecionado !== 'all') {
+        const [min, max] = precoSelecionado.split('-').map(Number);
+        matchPreco = max ? (prod.preco >= min && prod.preco <= max) : (prod.preco <= min);
+      }
+      return matchNome && matchCategoria && matchPreco;
+    });
+
+    paginaAtual = 1;
+    renderizarPaginaProdutos();
+    renderizarPaginacao();
+  }
+
+  function renderizarPaginaProdutos() {
+    containerProdutos.innerHTML = '';
+    if (produtosFiltrados.length === 0) {
+      containerProdutos.innerHTML = '<p class="empty-cart-message">Nenhum produto encontrado com esses filtros.</p>';
+      return;
+    }
+    
+    const inicio = (paginaAtual - 1) * PRODUTOS_POR_PAG;
+    const fim = inicio + PRODUTOS_POR_PAG;
+    const pagProdutos = produtosFiltrados.slice(inicio, fim);
+
+    pagProdutos.forEach(prod => {
+      const div = document.createElement('div');
+      div.className = 'product';
+      div.tabIndex = 0;
+      div.innerHTML = `
+        <img src="${prod.img}" alt="${prod.nome}" loading="lazy" />
+        <h4>${prod.nome}</h4>
+        <p>${formatadorMoeda.format(prod.preco)}</p>
+        <button aria-label="Adicionar ${prod.nome} ao carrinho" data-id="${prod.id}">Adicionar</button>
+      `;
+      containerProdutos.appendChild(div);
+    });
+  }
+
+  function renderizarPaginacao() {
+    containerPaginacao.innerHTML = '';
+    const totalPaginas = Math.ceil(produtosFiltrados.length / PRODUTOS_POR_PAG);
+    if (totalPaginas <= 1) return;
+
+    for (let i = 1; i <= totalPaginas; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.setAttribute('aria-label', `Página ${i}`);
+      if (i === paginaAtual) btn.disabled = true;
+      
+      btn.addEventListener('click', () => {
+        paginaAtual = i;
+        renderizarPaginaProdutos();
+        renderizarPaginacao();
+        containerProdutos.focus();
+      });
+      containerPaginacao.appendChild(btn);
+    }
+  }
+  
+  function adicionarAoCarrinho(produtoId) {
+    const produto = produtosDados.find(p => p.id === produtoId);
+    if (!produto) return;
+    
+    if (carrinho[produto.id]) {
+      carrinho[produto.id].quantidade++;
+    } else {
+      carrinho[produto.id] = { ...produto, quantidade: 1 };
+    }
+    
+    atualizarEstadoCarrinho();
+    mostrarNotificacao(`${produto.nome} adicionado!`);
+  }
+
+  function renderizarItensCarrinho() {
+    containerCarrinho.innerHTML = '';
+    const itens = Object.values(carrinho);
+
+    if (itens.length === 0) {
+      containerCarrinho.innerHTML = '<p class="empty-cart-message">Seu carrinho está vazio.</p>';
+      cartTotal.textContent = formatadorMoeda.format(0);
+      return;
+    }
+    
+    itens.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'cart-item';
+      div.setAttribute('tabindex', '0');
+      div.innerHTML = `
+        <img src="${item.img}" alt="${item.nome}" />
+        <div class="cart-item-info">
+          <h4>${item.nome}</h4>
+          <p>${formatadorMoeda.format(item.preco)}</p>
+        </div>
+        <div class="cart-item-actions">
+          <input type="number" min="1" max="99" value="${item.quantidade}" aria-label="Quantidade de ${item.nome}" data-id="${item.id}" />
+          <button aria-label="Remover ${item.nome} do carrinho" data-id="${item.id}">&times;</button>
+        </div>
+      `;
+      containerCarrinho.appendChild(div);
+    });
+
+    const total = itens.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
+    cartTotal.textContent = `Total: ${formatadorMoeda.format(total)}`;
+  }
+
+  // --- Funções de manipulação do carrinho ---
+  function manipularCarrinho(event) {
+    const target = event.target;
+    if (!target) return;
+    
+    const produtoId = parseInt(target.dataset.id, 10);
+    if (!carrinho[produtoId]) return;
+
+    // Ação: Mudar quantidade
+    if (target.matches('input[type="number"]')) {
+      let val = parseInt(target.value, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 99) val = 99;
+      target.value = val;
+      carrinho[produtoId].quantidade = val;
+      atualizarEstadoCarrinho();
+    }
+    
+    // Ação: Remover item
+    if (target.matches('button')) {
+      delete carrinho[produtoId];
+      atualizarEstadoCarrinho();
+      mostrarNotificacao("Item removido.");
+    }
+  }
+
+  // --- Configuração dos Eventos ---
+  
+  // MELHORIA: Delegação de eventos para os botões "Adicionar"
+  containerProdutos.addEventListener('click', (event) => {
+    if (event.target && event.target.matches('button[data-id]')) {
+      const produtoId = parseInt(event.target.dataset.id, 10);
+      adicionarAoCarrinho(produtoId);
+      
+      // Feedback visual no botão
+      event.target.textContent = 'Adicionado ✓';
+      event.target.disabled = true;
+      setTimeout(() => {
+        event.target.textContent = 'Adicionar';
+        event.target.disabled = false;
+      }, 1500);
+    }
+  });
+
+  // MELHORIA: Delegação de eventos para ações dentro do carrinho
+  containerCarrinho.addEventListener('change', manipularCarrinho);
+  containerCarrinho.addEventListener('click', manipularCarrinho);
+
+  filtroNome.addEventListener('input', filtrarEExibirProdutos);
+  filtroCategorias.forEach(i => i.addEventListener('change', filtrarEExibirProdutos));
+  filtroPreco.forEach(i => i.addEventListener('change', filtrarEExibirProdutos));
+
+  btnAbrirCarrinho.addEventListener('click', () => {
+    painelCarrinho.classList.add('aberto');
+    painelCarrinho.setAttribute('aria-hidden', 'false');
+    painelCarrinho.focus();
+  });
+
+  const fecharCarrinho = () => {
+    painelCarrinho.classList.remove('aberto');
+    painelCarrinho.setAttribute('aria-hidden', 'true');
+    btnAbrirCarrinho.focus();
+  };
+  btnFecharCarrinho.addEventListener('click', fecharCarrinho);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && painelCarrinho.classList.contains('aberto')) {
+      fecharCarrinho();
+    }
+  });
+
+  btnFinalizar.addEventListener('click', () => {
+    if (Object.keys(carrinho).length === 0) return;
+    
+    // MELHORIA: usa a notificação em vez do alert.
+    mostrarNotificacao(`Compra finalizada! Total: ${cartTotal.textContent.replace('Total: ', '')}`);
+    
+    carrinho = {};
+    atualizarEstadoCarrinho();
+    setTimeout(fecharCarrinho, 500);
+  });
+  
+  // --- Inicialização ---
+  filtrarEExibirProdutos();
+  atualizarEstadoCarrinho();
+
+})();
+</script>
+
+</body>
+</html>
